@@ -33,6 +33,7 @@ public class JPanelListe2 extends JPanel implements ActionListener, ItemListener
 
     private List<String> liste;
     private Map<String, Integer> occurrences;
+    private CareTaker caretaker = new CareTaker();
 
     public JPanelListe2(List<String> liste, Map<String, Integer> occurrences) {
         this.liste = liste;
@@ -67,53 +68,95 @@ public class JPanelListe2 extends JPanel implements ActionListener, ItemListener
         add(texte, "Center");
 
         boutonRechercher.addActionListener(this);
-        // à compléter;
+        boutonRetirer.addActionListener(this);
+        boutonOccurrences.addActionListener(this);
+        boutonAnnuler.addActionListener(this);
+        ordreCroissant.addItemListener(this);
+        ordreDecroissant.addItemListener(this);
 
     }
 
     public void actionPerformed(ActionEvent ae) {
-        try {
-            boolean res = false;
-            if (ae.getSource() == boutonRechercher || ae.getSource() == saisie) {
-                res = liste.contains(saisie.getText());
-                Integer occur = occurrences.get(saisie.getText());
-                afficheur.setText("résultat de la recherche de : "
-                    + saisie.getText() + " -->  " + res);
-            } else if (ae.getSource() == boutonRetirer) {
-                res = retirerDeLaListeTousLesElementsCommencantPar(saisie
-                    .getText());
-                afficheur
-                .setText("résultat du retrait de tous les éléments commençant par -->  "
-                    + saisie.getText() + " : " + res);
-            } else if (ae.getSource() == boutonOccurrences) {
-                Integer occur = occurrences.get(saisie.getText());
-                if (occur != null)
-                    afficheur.setText(" -->  " + occur + " occurrence(s)");
-                else
-                    afficheur.setText(" -->  ??? ");
-            }
-            texte.setText(liste.toString());
+            try {
+                boolean res = false;
+                if (ae.getSource() == boutonRechercher || ae.getSource() == saisie) {
+                    res = liste.contains(saisie.getText());
+                    Integer occur = occurrences.get(saisie.getText());
+                    afficheur.setText("resultat de: "
+                        + saisie.getText() + " ->  " + res);
+                } else if (ae.getSource() == boutonRetirer) {
+                    caretaker.addMemento(saveToMemento());
+                    res = retirerDeLaListeTousLesElementsCommencantPar(saisie
+                        .getText());
+                    afficheur
+                    .setText("resultat du retrait de tous les elements qui commence par ->  "
+                        + saisie.getText() + " : " + res);
+                } else if (ae.getSource() == boutonOccurrences) {
+                    Integer occur = occurrences.get(saisie.getText());
+                    if (occur != null)
+                        afficheur.setText(" ->  " + occur + " occurrence(s)");
+                    else
+                        afficheur.setText(" ->  ??? ");
+                }   else if (ae.getSource() == boutonAnnuler) {
+                    ListMemento memento = caretaker.getMemento();
+                    if (memento != null) {
+                        restoreFromMemento(memento);
+                    }
+                }
+                texte.setText(liste.toString());
 
-        } catch (Exception e) {
-            afficheur.setText(e.toString());
-        }
+            } catch (Exception e) {
+                afficheur.setText(e.toString());
+            }
     }
 
     public void itemStateChanged(ItemEvent ie) {
-        if (ie.getSource() == ordreCroissant)
-        ;// à compléter
-        else if (ie.getSource() == ordreDecroissant)
-        ;// à compléter
-
+        if (ie.getSource() == ordreCroissant){
+            caretaker.addMemento(saveToMemento());
+            Collections.sort(liste);
+        }
+        else if (ie.getSource() == ordreDecroissant){
+            caretaker.addMemento(saveToMemento());
+            Collections.sort(liste, new DecroissantComparator());
+        }
         texte.setText(liste.toString());
+    }
+
+    class DecroissantComparator implements Comparator<String> {
+        public int compare(String o1, String o2) {
+            return o2.compareTo(o1);
+        }
     }
 
     private boolean retirerDeLaListeTousLesElementsCommencantPar(String prefixe) {
         boolean resultat = false;
-        // à compléter
-        // à compléter
-        // à compléter
+        Iterator<String> it = liste.iterator();
+        while (it.hasNext()) {
+            String element = it.next();
+            if (element.startsWith(prefixe)) {
+                it.remove();
+                resultat = true;
+            }
+        }
+        majOccurrences();
         return resultat;
+    }
+
+    public ListMemento saveToMemento() {
+        return new ListMemento(liste);
+    }
+
+    public void restoreFromMemento(ListMemento memento) {
+        liste.clear();
+        liste.addAll(memento.getState());
+        majOccurrences();
+    }
+
+    private void majOccurrences() {
+        occurrences.clear();
+        for (String mot : liste) {
+            occurrences.put(mot, occurrences.getOrDefault(mot, 0) + 1);
+        }
     }
 
 }
